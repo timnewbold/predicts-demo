@@ -5,6 +5,5 @@ Version: 1.0
 Date: 2018-10-26
 Author: Tim Newbold
 Maintainer: Tim Newbold <t.newbold@ucl.ac.uk>
-Description: Contains some basic functions for reading in the PREDICTS data, performing 
-basic data processing, and calculating site-level biodiversity metrics
+Description: Contains some basic functions for reading in the PREDICTS data, performing basic data processing, and calculating site-level biodiversity metrics
 License: None
