@@ -61,8 +61,8 @@ function(diversity, extra.cols=NULL) {
   site.occurrence <- tapply(diversity$Is_occurrence, diversity$SSS, unique)
   site.species.richness <- tapply(diversity$Is_species_richness, diversity$SSS, unique)
   
-  total.abundance <- SiteTotalAbundance(diversity, site.abundance)
-  species.richness <- SiteSpeciesRichness(diversity, site.abundance, 
+  total.abundance <- .SiteTotalAbundance(diversity, site.abundance)
+  species.richness <- .SiteSpeciesRichness(diversity, site.abundance, 
                                            site.occurrence, 
                                            site.species.richness)
   
@@ -82,4 +82,35 @@ function(diversity, extra.cols=NULL) {
   
   return (res)
   
+}
+
+.SiteTotalAbundance <- function(diversity, site.abundance) {
+  cat("Computing total abundance\n")
+  ta <- rep(NA, length(site.abundance))
+  ta[site.abundance] <- tapply(diversity$Measurement[diversity$Is_abundance], 
+                               droplevels(diversity$SSS[diversity$Is_abundance]), 
+                               sum)
+  return (ta)
+}
+
+.SiteSpeciesRichness <- function(diversity, site.abundance, site.occurrence, 
+                                site.species.richness) {
+  
+  interesting <- diversity$Is_abundance | diversity$Is_occurrence
+  
+  cat('Computing species richness\n')
+  # The correct way - taxa are unique within sites
+  # The number of non-zero abundances and/or counts
+  sr <- rep(NA, length(site.abundance))
+  sr[site.abundance | site.occurrence] <- 
+    tapply(diversity$Measurement[interesting], 
+           droplevels(diversity$SSS[interesting]), 
+           function(m) sum(m>0))
+  
+  sr[site.species.richness] <- 
+    tapply(diversity$Measurement[diversity$Is_species_richness], 
+           droplevels(diversity$SSS[diversity$Is_species_richness]), 
+           sum)
+  
+  return (sr)
 }
