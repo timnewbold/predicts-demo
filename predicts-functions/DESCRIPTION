@@ -1,9 +1,10 @@
 Package: predicts-functions
 Type: Package
-Title: What the package does (short line)
+Title: Functions for reading and processing the PREDICTS data
 Version: 1.0
 Date: 2018-10-26
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Tim Newbold
+Maintainer: Tim Newbold <t.newbold@ucl.ac.uk>
+Description: Contains some basic functions for reading in the PREDICTS data, performing 
+basic data processing, and calculating site-level biodiversity metrics
+License: None
