@@ -1,4 +1,4 @@
-Package: predicts-functions
+Package: predictsFunctions
 Type: Package
 Title: Functions for reading and processing the PREDICTS data
 Version: 1.0

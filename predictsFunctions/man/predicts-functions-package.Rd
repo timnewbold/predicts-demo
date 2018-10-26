@@ -1,24 +1,24 @@
-\name{predicts-functions-package}
-\alias{predicts-functions-package}
-\alias{predicts-functions}
+\name{predictsFunctions-package}
+\alias{predictsFunctions-package}
+\alias{predictsFunctions}
 \docType{package}
 \title{
-\packageTitle{predicts-functions}
+\packageTitle{predictsFunctions}
 }
 \description{
-\packageDescription{predicts-functions}
+\packageDescription{predictsFunctions}
 }
 \details{
 
 The DESCRIPTION file:
-\packageDESCRIPTION{predicts-functions}
-\packageIndices{predicts-functions}
+\packageDESCRIPTION{predictsFunctions}
+\packageIndices{predictsFunctions}
 ~~ An overview of how to use the package, including the most important functions ~~
 }
 \author{
-\packageAuthor{predicts-functions}
+\packageAuthor{predictsFunctions}
 
-Maintainer: \packageMaintainer{predicts-functions}
+Maintainer: \packageMaintainer{predictsFunctions}
 }
 \references{
 ~~ Literature or other references for background information ~~
