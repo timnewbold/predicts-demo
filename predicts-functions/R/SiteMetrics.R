@@ -1,0 +1,85 @@
+SiteMetrics <-
+function(diversity, extra.cols=NULL) {
+  # Takes a data.frame of diversity measurements and returns a data.frame 
+  # of site-level matrics.
+  # diversity should have columns
+  #   Source_ID
+  #   Study_number
+  #   Site_number
+  #   SS (Source_ID Study_number)
+  #   SSS (Source_ID Study_number Site_number)
+  #   Diversity_metric_is_valid
+  #   Diversity_metric_type
+  #   Diversity_metric_is_effort_sensitive
+  #   Diversity_metric_is_suitable_for_Chao
+  #   Sampling_effort
+  #   Sampling_method_is_valid
+  #   Measurement
+  #   All columns in 'traits'
+  
+  # The Diverity_* and Sampling_* columns are each guaranteed to be unique 
+  # within studies. Because sites are nested within studies, these columns are 
+  # also guaranteed to be unique within sites.
+  cat(paste('Computing site metrics for', nrow(diversity), 'measurements\n'))
+  
+  stopifnot(all(diversity$Diversity_metric_is_valid))
+  stopifnot(all(!is.na(diversity$Sampling_effort)))
+  
+  site.cols <- c('Source_ID','Study_number','Study_name','Site_number',
+                 'Site_name','Block','Predominant_habitat','Use_intensity',
+                 'Longitude','Latitude','Sample_start_earliest',
+                 'Sample_end_latest','Diversity_metric_type')
+  
+  if(!is.null(extra.cols)) site.cols <- union(site.cols, extra.cols)
+  
+  # Drop names of columns that are not present
+  site.cols <- intersect(site.cols, colnames(diversity))
+  
+  cat('The data contain', nlevels(diversity$Source_ID), 'sources,', 
+       nlevels(diversity$SS), 'studies and',
+       nlevels(diversity$SSS), 'sites\n')
+  
+  
+  if(any('Diversity index'==diversity$Diversity_metric_type)) {
+    stop('Diversity indices are not yet supported')
+  }
+  
+  bad <- setdiff(diversity$Diversity_metric_type, c('Abundance','Occurrence','Species richness'))
+  if(length(bad)>0) {
+    stop('Unrecognied diversity metrics ', paste(bad, collapse=','))
+  }
+  
+  cat('Computing site-level values\n')
+  
+  # Measurement-level values
+  diversity$Is_abundance <- 'Abundance'==diversity$Diversity_metric_type
+  diversity$Is_occurrence <- 'Occurrence'==diversity$Diversity_metric_type
+  diversity$Is_species_richness <- 'Species richness'==diversity$Diversity_metric_type
+  
+  # Site-level values
+  site.abundance <- tapply(diversity$Is_abundance, diversity$SSS, unique)
+  site.occurrence <- tapply(diversity$Is_occurrence, diversity$SSS, unique)
+  site.species.richness <- tapply(diversity$Is_species_richness, diversity$SSS, unique)
+  
+  total.abundance <- SiteTotalAbundance(diversity, site.abundance)
+  species.richness <- SiteSpeciesRichness(diversity, site.abundance, 
+                                           site.occurrence, 
+                                           site.species.richness)
+  
+  cat('Assembling site-level values\n')
+  res <- cbind(diversity[!duplicated(diversity$SSS),c(site.cols,'SS','SSS')], 
+               Total_abundance=total.abundance, 
+               Species_richness=species.richness)
+  rownames(res) <- NULL
+  
+  res <- res[order(res$Source_ID, res$Study_number, res$Site_number),]
+  
+  # Sanity checks
+  stopifnot(all.equal(as.character(res$SS), 
+                      paste(res$Source_ID, res$Study_number)))
+  stopifnot(all.equal(as.character(res$SSS), 
+                      paste(res$Source_ID, res$Study_number, res$Site_number)))
+  
+  return (res)
+  
+}
