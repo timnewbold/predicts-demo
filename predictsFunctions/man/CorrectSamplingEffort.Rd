@@ -1,69 +1,40 @@
 \name{CorrectSamplingEffort}
 \alias{CorrectSamplingEffort}
-%- Also NEED an '\alias' for EACH other topic documented here.
+
 \title{
-%%  ~~function to do ... ~~
+Corrects abundance measures for sampling effort
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Corrects any measures of abundance that are effort-sensitive according to recorded sampling effort
 }
 \usage{
 CorrectSamplingEffort(diversity)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
   \item{diversity}{
-%%     ~~Describe \code{diversity} here~~
+The PREDICTS species-level data-frame, or a subset thereof
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Returns the PREDICTS data-frame, but where the column 'Measurement' is corrected for sampling effort.
 }
 \references{
-%% ~put references to the literature/web site here ~
+Newbold et al. (2014). A global model of the response of tropical and sub-tropical forest biodiversity to anthropogenic pressures. <i>Proceedings of the Royal Society, Series B</i> <b>281</b>: 20141371.
 }
 \author{
-%%  ~~who you are~~
+Tim Newbold <t.newbold@ucl.ac.uk>
 }
 \note{
-%%  ~~further notes~~
-}
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
+}
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (diversity) 
-{
-    missing <- is.na(diversity$Sampling_effort)
-    cat("Correcting", sum(missing), "missing sampling effort values\n")
-    diversity$Sampling_effort[missing] <- 1
-    cat("Rescaling sampling effort\n")
-    diversity$Sampling_effort <- do.call("c", tapply(diversity$Sampling_effort, 
-        diversity$SS, function(se) return(se/max(se))))
-    sensitive <- diversity$Diversity_metric_is_effort_sensitive
-    cat("Correcting", sum(sensitive), "values for sensitivity to sampling", 
-        "effort\n")
-    diversity$Measurement[sensitive] <- diversity[sensitive, 
-        "Measurement"]/diversity[sensitive, "Sampling_effort"]
-    return(diversity)
-  }
+predicts <- CorrectSamplingEffort(predicts)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

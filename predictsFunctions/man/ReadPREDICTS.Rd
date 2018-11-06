@@ -1,58 +1,41 @@
 \name{ReadPREDICTS}
 \alias{ReadPREDICTS}
-%- Also NEED an '\alias' for EACH other topic documented here.
+
 \title{
-%%  ~~function to do ... ~~
+Read the PREDICTS database
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
-}
+Reads the PREDICTS database from an .rds file
 \usage{
 ReadPREDICTS(path)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
   \item{path}{
-%%     ~~Describe \code{path} here~~
+The full path to a local copy of the PREDICTS database, which can be downloaded from: http://dx.doi.org/10.5519/0066354.
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+Returns the PREDICTS database as an R data-frame
 }
 \references{
-%% ~put references to the literature/web site here ~
+Hudson L.N., Newbold, T. et al. (2017). The database of the PREDICTS (Projecting Responses of Ecological Diversity In Changing Terrestrial Systems) project. <i>Ecology & Evolution</i> <b>7</b>: 145-188.
 }
 \author{
-%%  ~~who you are~~
+Tim Newbold <t.newbold@ucl.ac.uk>
 }
 \note{
-%%  ~~further notes~~
-}
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
+}
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+predicts.path <- "C:/Users/tim_n/Documents/database.rds"
 
-## The function is currently defined as
-function (path) 
-{
-    return(readRDS(path))
-  }
+predicts <- ReadPREDICTS(predicts.path)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
