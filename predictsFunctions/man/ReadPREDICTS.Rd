@@ -6,6 +6,7 @@ Read the PREDICTS database
 }
 \description{
 Reads the PREDICTS database from an .rds file
+}
 \usage{
 ReadPREDICTS(path)
 }
