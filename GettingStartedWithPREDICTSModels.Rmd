@@ -1,0 +1,103 @@
+--- 
+title: "Modelling Land-use Impacts on Biodiversity - Getting Started with PREDICTS" 
+author: "Tim Newbold" 
+output: html_document 
+---
+
+This document will introduce the PREDICTS database, show you how to get the data, and how to start with some simple models of land-use impacts.
+
+# Package dependencies
+* predictsFunctions
+
+The predictsFunctions and StatisticalModels packages can be installed from GitHub:
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE,results=FALSE}
+library(remotes)
+remotes::install_github("timnewbold/predicts-demo",subdir = "predictsFunctions")
+remotes::install_github("timnewbold/StatisticalModels")
+```
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE, results=FALSE}
+library(predictsFunctions)
+library(StatisticalModels)
+print(sessionInfo())
+```
+
+# The PREDICTS Database
+
+## Getting the PREDICTS Database
+
+You can get started quickly using the code below. If you intend to use the PREDICTS database in your work, please download it from the [Natural History Museum data portal](https://data.nhm.ac.uk/dataset/the-2016-release-of-the-predicts-database), to give credit for your use.
+
+```{r, echo=TRUE}
+# Download and import the PREDICTS data
+myFile <- url("https://www.dropbox.com/s/pb1mdiel8o22186/database.rds?dl=1")
+predicts <- readRDS(myFile)
+print(head(predicts))
+```
+
+## Getting the Database Ready for Analysis
+
+There are some standard steps to take before working with the PREDICTS database:
+1. Correcting abundance values where sampling effort varies among the sites sampled in a single study.
+2. Merging sites with the same coordinates.
+
+```{r, echo=TRUE, message=FALSE, results=FALSE}
+# Correct effort-sensitive abundance measures (assumes linear relationship between effort and recorded abundance)
+predicts <- predictsFunctions::CorrectSamplingEffort(diversity = predicts)
+
+# Merge sites that have the same coordinates (e.g. multiple traps on a single transect)
+predicts <- predictsFunctions::MergeSites(diversity = predicts)
+```
+
+A lot of models of the PREDICTS database are of assemblage-level biodiversity measures. You can calculate these site-level measures using the *SiteMetrics* function.
+
+```{r, echo=TRUE}
+# Calculate site metrics of diversity - currently only species richness and total abundance
+sites <- SiteMetrics(diversity = predicts,
+                     extra.cols = c("Predominant_land_use",
+                                    "SSB","SSBS","Biome"))
+```
+
+# Modelling the Impacts of Land Use
+
+## Site-level biodiversity
+
+We will start with some simple models of site-level biodiversity as a function only of land use.
+
+First, we will rearrange the land-use classification a bit.
+
+```{r, echo=TRUE}
+sites$LandUse <- paste(sites$Predominant_land_use)
+# Drop classification where land use could not be identified
+sites$LandUse[(sites$LandUse=="Cannot decide")] <- NA
+# Drop classification where the stage of recovery of secondary vegetation is unknown
+sites$LandUse[(sites$LandUse=="Secondary vegetation (indeterminate age)")] <- NA
+# Now make the variable a factor, and set the reference level to primary vegetation
+sites$LandUse <- factor(sites$LandUse)
+sites$LandUse <- relevel(sites$LandUse,ref="Primary vegetation")
+```
+
+We have to model the PREDICTS data using mixed-effects models, to account for the hierarchical structure of the database. We will start by investigating different possible random-effects structures for our models. All PREDICTS models need to have a random intercept of Study identity, since biodiversity measures are not comparable between studies.
+
+We will compare here a model with a random intercept only of study, with one that contains a nested random intercept representing spatial blocks of sites within studies (to account for the spatial structuring of sites).
+
+```{r, echo=TRUE}
+# Fit a model with a random intercept only of study identity
+r1 <- GLMER(modelData = sites,responseVar = "Species_richness",
+            fitFamily = "poisson",fixedStruct = "LandUse",
+            randomStruct = "(1|SS)",REML = FALSE)
+
+# Try a model that also has a nested random intercept for spatial block identity
+r2 <- GLMER(modelData = sites,responseVar = "Species_richness",
+            fitFamily = "poisson",fixedStruct = "LandUse",
+            randomStruct = "(1|SS)+(1|SSB)",REML = FALSE)
+
+# Compare the AIC values of the models
+print(AIC(r1$model,r2$model))
+```
+
+Clearly, including spatial block improves model fit.
+
+
+
