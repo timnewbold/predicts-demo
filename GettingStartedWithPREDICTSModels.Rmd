@@ -24,7 +24,7 @@ remotes::install_github("timnewbold/StatisticalModels")
 library(performance)
 library(predictsFunctions)
 library(StatisticalModels)
-print(sessionInfo())
+sessionInfo()
 ```
 
 # The PREDICTS Database
@@ -37,7 +37,7 @@ You can get started quickly using the code below. If you intend to use the PREDI
 # Download and import the PREDICTS data
 myFile <- url("https://www.dropbox.com/s/pb1mdiel8o22186/database.rds?dl=1")
 predicts <- readRDS(myFile)
-print(head(predicts))
+head(predicts)
 ```
 
 ## Getting the Database Ready for Analysis
@@ -65,7 +65,7 @@ sites <- SiteMetrics(diversity = predicts,
 
 # Modelling the Impacts of Land Use
 
-## Site-level biodiversity
+## Site-level biodiversity - response to land use
 
 We will start with some simple models of site-level biodiversity as a function only of land use.
 
@@ -102,7 +102,7 @@ r2 <- GLMER(modelData = sites,responseVar = "Species_richness",
             randomStruct = "(1|SS)+(1|SSB)",REML = FALSE)
 
 # Compare the AIC values of the models
-print(AIC(r1$model,r2$model))
+AIC(r1$model,r2$model)
 ```
 
 Clearly, including spatial block improves model fit, so we will include that random intercept in the models from now on.
@@ -136,4 +136,27 @@ m1 <- GLMERSelect(modelData = sites,responseVar = "Species_richness",
                   fitFamily = "poisson",fixedFactors = c("LandUse"),
                   randomStruct = "(1|SS)+(1|SSB)+(1|SSBS)",verbose = TRUE)
 m1$stats
+```
+
+Land use has a *very* highly significant effect on species richness.
+
+### Model checking
+
+TO DO - add description of relevant model checks. Add spatial autocorrelation tests.
+
+```{r, echo=TRUE}
+R2GLMER(model = m1$model)
+
+performance::check_model(m1$model)
+```
+
+Variation in species richness that is explained by the fixed effect (land use) is very low. Residuals are not very close to a normal distribution and show evidence of heteroskedascity. But we haven't included many potentially important explanatory variables at this stage.
+
+### Model plotting
+
+```{r, echo=TRUE}
+PlotGLMERFactor(model = m1$model,data = m1$data,responseVar = "Species richness",
+                seMultiplier = 1.96,logLink = "e",catEffects = "LandUse",
+                xtext.srt = 45,order = c(1,4,3,8,6,2,5,7),
+                params = list(mar=c(3,3.2,0.2,0.2)))
 ```
