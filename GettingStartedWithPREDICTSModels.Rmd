@@ -7,17 +7,21 @@ output: html_document
 This document will introduce the PREDICTS database, show you how to get the data, and how to start with some simple models of land-use impacts.
 
 # Package dependencies
+* performance
 * predictsFunctions
+* StatisticalModels
 
 The predictsFunctions and StatisticalModels packages can be installed from GitHub:
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE,results=FALSE}
+```{r, echo=TRUE, warning=FALSE, message=FALSE,results=FALSE,eval=FALSE}
+install.packages("performance")
 library(remotes)
 remotes::install_github("timnewbold/predicts-demo",subdir = "predictsFunctions")
 remotes::install_github("timnewbold/StatisticalModels")
 ```
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results=FALSE}
+library(performance)
 library(predictsFunctions)
 library(StatisticalModels)
 print(sessionInfo())
@@ -65,6 +69,8 @@ sites <- SiteMetrics(diversity = predicts,
 
 We will start with some simple models of site-level biodiversity as a function only of land use.
 
+### Data preparation
+
 First, we will rearrange the land-use classification a bit.
 
 ```{r, echo=TRUE}
@@ -77,6 +83,8 @@ sites$LandUse[(sites$LandUse=="Secondary vegetation (indeterminate age)")] <- NA
 sites$LandUse <- factor(sites$LandUse)
 sites$LandUse <- relevel(sites$LandUse,ref="Primary vegetation")
 ```
+
+### Selecting random effects
 
 We have to model the PREDICTS data using mixed-effects models, to account for the hierarchical structure of the database. We will start by investigating different possible random-effects structures for our models. All PREDICTS models need to have a random intercept of Study identity, since biodiversity measures are not comparable between studies.
 
@@ -97,7 +105,35 @@ r2 <- GLMER(modelData = sites,responseVar = "Species_richness",
 print(AIC(r1$model,r2$model))
 ```
 
-Clearly, including spatial block improves model fit.
+Clearly, including spatial block improves model fit, so we will include that random intercept in the models from now on.
 
+Species richness models are often overdispersed. We can check whether that is the case as follows:
 
+```{r, echo=TRUE}
+GLMEROverdispersion(model = r2$model)
+```
 
+The residual deviance is much greater than the residual degrees of freedom. Consequently, the model is significantly over-dispersed. We can attempt to deal with this by including an observation-level random intercept (here site identity):
+
+```{r, echo=TRUE}
+r3 <- GLMER(modelData = sites,responseVar = "Species_richness",
+            fitFamily = "poisson",fixedStruct = "LandUse",
+            randomStruct = "(1|SS)+(1|SSB)+(1|SSBS)",REML = FALSE)
+
+GLMEROverdispersion(model = r3$model)
+
+AIC(r1$model,r2$model,r3$model)
+```
+
+This has removed the overdispersion. Also, the AIC of the model with site identity as a random intercept is much lower than the AIC of the other models. Therefore, we will proceed with this most-complex random-effects structure.
+
+### Model Selection
+
+We will now perform a very simple model selection exercise to test whether land use has a significant effect on species richness.
+
+```{r, echo=TRUE}
+m1 <- GLMERSelect(modelData = sites,responseVar = "Species_richness",
+                  fitFamily = "poisson",fixedFactors = c("LandUse"),
+                  randomStruct = "(1|SS)+(1|SSB)+(1|SSBS)",verbose = TRUE)
+m1$stats
+```
