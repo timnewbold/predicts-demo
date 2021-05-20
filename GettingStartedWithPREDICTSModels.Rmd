@@ -8,13 +8,16 @@ This document will introduce the PREDICTS database, show you how to get the data
 
 # Package dependencies
 * performance
+* raster
 * predictsFunctions
 * StatisticalModels
 
-The predictsFunctions and StatisticalModels packages can be installed from GitHub:
+The performance and raster packages are available on CRAN. The predictsFunctions and StatisticalModels packages can be installed from my GitHub:
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE,results=FALSE,eval=FALSE}
 install.packages("performance")
+install.packages("raster")
+install.packages("DHARMa")
 library(remotes)
 remotes::install_github("timnewbold/predicts-demo",subdir = "predictsFunctions")
 remotes::install_github("timnewbold/StatisticalModels")
@@ -22,6 +25,8 @@ remotes::install_github("timnewbold/StatisticalModels")
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE, results=FALSE}
 library(performance)
+library(raster)
+library(DHARMa)
 library(predictsFunctions)
 library(StatisticalModels)
 sessionInfo()
@@ -45,6 +50,7 @@ head(predicts)
 There are some standard steps to take before working with the PREDICTS database:
 1. Correcting abundance values where sampling effort varies among the sites sampled in a single study.
 2. Merging sites with the same coordinates.
+There are functions available to perform both of these operations:
 
 ```{r, echo=TRUE, message=FALSE, results=FALSE}
 # Correct effort-sensitive abundance measures (assumes linear relationship between effort and recorded abundance)
@@ -63,11 +69,31 @@ sites <- SiteMetrics(diversity = predicts,
                                     "SSB","SSBS","Biome"))
 ```
 
+We will also include elevation and climate in the models, to control for potential confounding influences.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE,results=FALSE}
+# Retrieve climate and elevation layers (warning, this takes a
+# few minutes)
+meantemp <- raster("https://www.dropbox.com/s/gnp437j8uhn6qgl/bio_1.tif?dl=1")
+totalprecip <- raster("https://www.dropbox.com/s/45p26vpikiwdua5/bio_12.tif?dl=1")
+elev <- raster("https://www.dropbox.com/s/ech9au3b0jmp1yr/alt.tif?dl=1")
+
+# Extract values of the climate variables and elevation at the
+# PREDICTS sites
+sites$MeanTemperature <- raster::extract(meantemp,sites[,c('Longitude','Latitude')])
+sites$TotalPrecipitation <- raster::extract(totalprecip,sites[,c('Longitude','Latitude')])
+sites$Elevation <- raster::extract(elev,sites[,c('Longitude','Latitude')])
+
+# Log transform precipitation and elevation values, which are very skewed
+sites$LogPrecipitation <- log(sites$TotalPrecipitation)
+sites$LogElevation <- log(sites$Elevation+10)
+```
+
 # Modelling the Impacts of Land Use
 
 ## Site-level biodiversity - response to land use
 
-We will start with some simple models of site-level biodiversity as a function only of land use.
+We will start with some simple models of site-level biodiversity as a function only of land use, controlling for potentially confounding effects of temperature, precipitation and elevation.
 
 ### Data preparation
 
@@ -90,15 +116,19 @@ We have to model the PREDICTS data using mixed-effects models, to account for th
 
 We will compare here a model with a random intercept only of study, with one that contains a nested random intercept representing spatial blocks of sites within studies (to account for the spatial structuring of sites).
 
+To select random terms, you should use the most complex combination of fixed effects. Here, we will consider a model with land use, mean temperature, total annual precipitation and elevation. We will fit quadratic polynomials for elevation and the climate variables.
+
 ```{r, echo=TRUE}
 # Fit a model with a random intercept only of study identity
 r1 <- GLMER(modelData = sites,responseVar = "Species_richness",
-            fitFamily = "poisson",fixedStruct = "LandUse",
+            fitFamily = "poisson",
+            fixedStruct = "LandUse+poly(MeanTemperature,1)+poly(LogPrecipitation,1)+poly(LogElevation,1)",
             randomStruct = "(1|SS)",REML = FALSE)
 
 # Try a model that also has a nested random intercept for spatial block identity
 r2 <- GLMER(modelData = sites,responseVar = "Species_richness",
-            fitFamily = "poisson",fixedStruct = "LandUse",
+            fitFamily = "poisson",
+            fixedStruct = "LandUse+poly(MeanTemperature,1)+poly(LogPrecipitation,1)+poly(LogElevation,1)",
             randomStruct = "(1|SS)+(1|SSB)",REML = FALSE)
 
 # Compare the AIC values of the models
@@ -117,7 +147,8 @@ The residual deviance is much greater than the residual degrees of freedom. Cons
 
 ```{r, echo=TRUE}
 r3 <- GLMER(modelData = sites,responseVar = "Species_richness",
-            fitFamily = "poisson",fixedStruct = "LandUse",
+            fitFamily = "poisson",
+            fixedStruct = "LandUse+poly(MeanTemperature,1)+poly(LogPrecipitation,1)+poly(LogElevation,1)",
             randomStruct = "(1|SS)+(1|SSB)+(1|SSBS)",REML = FALSE)
 
 GLMEROverdispersion(model = r3$model)
@@ -134,6 +165,10 @@ We will now perform a very simple model selection exercise to test whether land 
 ```{r, echo=TRUE}
 m1 <- GLMERSelect(modelData = sites,responseVar = "Species_richness",
                   fitFamily = "poisson",fixedFactors = c("LandUse"),
+                  fixedTerms = list(
+                    MeanTemperature=1,
+                    LogPrecipitation=1,
+                    LogElevation=1),
                   randomStruct = "(1|SS)+(1|SSB)+(1|SSBS)",verbose = TRUE)
 m1$stats
 ```
@@ -145,12 +180,18 @@ Land use has a *very* highly significant effect on species richness.
 TO DO - add description of relevant model checks. Add spatial autocorrelation tests.
 
 ```{r, echo=TRUE}
+# Use DHARMa package to compare observed to simulated residuals
+simulationOutput <- simulateResiduals(fittedModel = m1$model, plot = FALSE)
+plot(simulationOutput)
+
+# SpatialAutocorrelationTest(model = m1)
+
 R2GLMER(model = m1$model)
 
 performance::check_model(m1$model)
 ```
 
-Variation in species richness that is explained by the fixed effect (land use) is very low. Residuals are not very close to a normal distribution and show evidence of heteroskedascity. But we haven't included many potentially important explanatory variables at this stage.
+Variation in species richness that is explained by the fixed effects is very low. Residuals are not very close to a normal distribution and show evidence of heteroskedascity. But we haven't included many potentially important explanatory variables at this stage.
 
 ### Model plotting
 
@@ -159,4 +200,52 @@ PlotGLMERFactor(model = m1$model,data = m1$data,responseVar = "Species richness"
                 seMultiplier = 1.96,logLink = "e",catEffects = "LandUse",
                 xtext.srt = 45,order = c(1,4,3,8,6,2,5,7),
                 params = list(mar=c(3,3.2,0.2,0.2)))
+
+PlotGLMERContinuous(model = m1$model,data = m1$data,
+                    effects = "MeanTemperature",
+                    otherFactors = list(LandUse="Primary vegetation"),
+                    otherContEffects = c("LogPrecipitation"),
+                    xlab = "Temperature",ylab = "Species richness",
+                    logLink = "e",plotRug = TRUE,seMultiplier = 1.96)
+PlotGLMERContinuous(model = m1$model,data = m1$data,
+                    effects = "LogPrecipitation",
+                    otherFactors = list(LandUse="Primary vegetation"),
+                    otherContEffects = c("MeanTemperature"),
+                    xlab = "Precipitation",ylab = "Species richness",
+                    logLink = "e",plotRug = TRUE,seMultiplier = 1.96,
+                    transformX = TRUE)
 ```
+
+We can also make plots by predicting. TODO - add more detail.
+
+```{r, echo=TRUE}
+nd <- data.frame(LandUse=factor(c(
+  "Primary vegetation","Mature secondary vegetation",
+  "Intermediate secondary vegetation","Young secondary vegetation",
+  "Plantation forest","Cropland","Pasture","Urban"),
+  levels = levels(m1$data$LandUse)),
+  MeanTemperature=median(m1$data$MeanTemperature),
+  LogPrecipitation=median(m1$data$LogPrecipitation),
+  Species_richness=0)
+
+preds <- PredictGLMERRandIter(model = m1$model,data = nd)
+
+preds <- exp(preds)
+
+preds <- sweep(x = preds,MARGIN = 2,STATS = preds[1,],FUN = '/')
+
+preds.median <- ((apply(X = preds,MARGIN = 1,FUN = median,na.rm=TRUE))*100)-100
+preds.lower.67 <- ((apply(X = preds,MARGIN = 1,FUN = quantile,probs=(1/6),
+                          na.rm=TRUE))*100)-100
+preds.upper.67 <- ((apply(X = preds,MARGIN = 1,FUN = quantile,probs=(5/6),
+                          na.rm=TRUE))*100)-100
+preds.lower.95 <- ((apply(X = preds,MARGIN = 1,FUN = quantile,probs=0.025,
+                       na.rm=TRUE))*100)-100
+preds.upper.95 <- ((apply(X = preds,MARGIN = 1,FUN = quantile,probs=0.975,
+                       na.rm=TRUE))*100)-100
+
+errbar(x = 1:8,y = preds.median,yplus = preds.upper.95,yminus = preds.lower.95)
+errbar(x = 1:8,y = preds.median,yplus = preds.upper.67,yminus = preds.lower.67,add=TRUE,lwd=3)
+
+```
+
