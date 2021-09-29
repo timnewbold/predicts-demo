@@ -127,7 +127,8 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
 }
 
 .SiteChao <- function(diversity, site.abundance) {
-  .Log("Computing Chao\n")
+  
+  cat("Computing Chao\n")
   # Compute Chao only for studies where Diversity_metric_is_suitable_for_Chao 
   # is TRUE and all measurements within the study are integers.
   
@@ -156,7 +157,8 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
 }
 
 .SiteRarefiedRichness<-function(diversity, site.abundance){
-  .Log("Computing Rarefied Species Richness\n")
+  
+  cat("Computing Rarefied Species Richness\n")
   # Compute rarefied richness only for studies where Diversity_metric_is_suitable_for_Chao 
   # is TRUE and all measurements within the study are integers.
   
