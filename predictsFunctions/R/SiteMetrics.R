@@ -1,5 +1,5 @@
-SiteMetrics <-
-function(diversity, extra.cols=NULL) {
+SiteMetrics <- function(diversity, extra.cols=NULL,
+                        srEstimators = c("Chao","Rare")) {
   # Takes a data.frame of diversity measurements and returns a data.frame 
   # of site-level matrics.
   # diversity should have columns
