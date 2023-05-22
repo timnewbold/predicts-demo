@@ -225,7 +225,7 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
 
 
 .SiteSimpsonsDiversity <- function(diversity, site.abundance) {
-  .Log("Computing Simpson's diversity\n")
+  cat("Computing Simpson's diversity\n")
   sd <- rep(NA, length(site.abundance))
   sd[site.abundance] <- tapply(diversity$Measurement[diversity$Is_abundance], 
                                droplevels(diversity$SSS[diversity$Is_abundance]), 
