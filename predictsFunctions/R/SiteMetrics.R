@@ -65,6 +65,7 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
   species.richness <- .SiteSpeciesRichness(diversity, site.abundance, 
                                            site.occurrence, 
                                            site.species.richness)
+  simpsons <- .SiteSimpsonsDiversity(diversity, site.abundance)
   
   # Calculate specified species richness estimators
   if ("Chao" %in% srEstimators){
@@ -79,6 +80,7 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
   res <- cbind(diversity[!duplicated(diversity$SSS),c(site.cols,'SS','SSS')], 
                Total_abundance=total.abundance, 
                Species_richness=species.richness,
+               Simpson_diversity=simpsons,
                ChaoR=if ("Chao" %in% srEstimators) chao else NA,
                Richness_rarefied=if ("Rare" %in% srEstimators) rsrich else NA)
   rownames(res) <- NULL
@@ -219,4 +221,17 @@ SiteMetrics <- function(diversity, extra.cols=NULL,
   
   return(rsrich)
   
+}
+
+
+.SiteSimpsonsDiversity <- function(diversity, site.abundance) {
+  .Log("Computing Simpson's diversity\n")
+  sd <- rep(NA, length(site.abundance))
+  sd[site.abundance] <- tapply(diversity$Measurement[diversity$Is_abundance], 
+                               droplevels(diversity$SSS[diversity$Is_abundance]), 
+                               function(m) {
+                                 if(any(m>0)) 1/(sum((m/sum(m))^2))
+                                 else         NA
+                               })
+  return (sd)
 }
